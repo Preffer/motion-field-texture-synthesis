@@ -1,4 +1,5 @@
 #include <iostream>
+#include <list>
 #include <boost/format.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -20,17 +21,18 @@ class Particle {
 Particle::Particle() {
 	xPos = 320;
 	yPos = 320;
-	xSpeed = float(rand()) / RAND_MAX;
-	ySpeed = float(rand()) / RAND_MAX;
-	ttl = rand() % 800;
+	xSpeed = float(rand()) / RAND_MAX - 0.5;
+	ySpeed = float(rand()) / RAND_MAX - 0.5;
+	ttl = rand() % 1000;
 }
 
 int main(int argc, char *argv[]) {
 	Mat motion = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 	//imshow("Motion", motion);
 
-	vector<Particle> particles;
+	list<Particle> particles;
 
+	/*
 	VideoWriter videoOut(
 		string(argv[1]) + ".mpg",
 		CV_FOURCC('P','I','M','1'),
@@ -42,39 +44,40 @@ int main(int argc, char *argv[]) {
 		cerr << "Failed to open " << endl;
 		return EXIT_FAILURE;
 	}
+	*/
 
 	while (true) {
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 1000; i++) {
 			particles.push_back(Particle());
 		}
 
 		// apply motion
-		for (uint i = 0; i < particles.size(); i++) {
-			Particle& p = particles[i];
-			if (--(p.ttl) <= 0) {
-				particles.erase(particles.begin() + (i--));
+		for (auto p = particles.begin(); p != particles.end(); p++) {
+			if (--(p->ttl) <= 0) {
+				particles.erase(p--);
 				continue;
 			} 
-			Vec3b bgrPixel = motion.at<Vec3b>(p.xPos, p.yPos);
+			Vec3b bgrPixel = motion.at<Vec3b>(p->xPos, p->yPos);
 
-			p.xPos += p.xSpeed;
-			p.yPos += p.ySpeed;
+			p->xPos += p->xSpeed;
+			p->yPos += p->ySpeed;
 
-			if (p.xPos <= 1 || p.xPos >= 638 || p.yPos <= 1 || p.yPos >= 638) {
-				particles.erase(particles.begin() + (i--));
+			if (p->xPos < 0 || p->xPos > 639 || p->yPos < 0 || p->yPos > 639) {
+				particles.erase(p--);
 				continue;
 			}
 
-			p.xSpeed += (float(bgrPixel[0]) - 128) / 10000.0;
-			p.ySpeed += (float(bgrPixel[1]) - 128) / 10000.0;
+			p->xSpeed += (float(bgrPixel[0]) - 128) / 10000.0;
+			p->ySpeed += (float(bgrPixel[1]) - 128) / 10000.0;
 		}
 
 		Mat scene = Mat::zeros(motion.size(), motion.type());
-		
-		for(Particle& p : particles) {
-			scene.at<Vec3b>(p.xPos, p.yPos) = Vec3b(255, 255, 255) * (p.ttl / 800.0);
+
+		for (Particle& p : particles) {
+			scene.at<Vec3b>(p.xPos, p.yPos) += (Vec3b(255, 255, 255) - scene.at<Vec3b>(p.xPos, p.yPos)) * (p.ttl / 1000.0);
 		}
-		videoOut << scene;
+
+		//videoOut << scene;
 		imshow("Scene", scene);
 		waitKey(1);
 	}
