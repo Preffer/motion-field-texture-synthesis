@@ -21,6 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{02086041-443B-4EBC-AF77-DBEEB1F76AFF}</ProjectGuid>
     <RootNamespace>Compute</RootNamespace>
+    <ProjectName>Motion</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -122,6 +123,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl.h" />
+    <ClInclude Include="util.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="compute.shader" />

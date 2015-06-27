@@ -1,6 +1,8 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
+#include <GL/glew.h>
+
 const char* readFileBytes(const char* path);
 GLuint readImage(const char* path, int* w, int* h);
 GLuint buildShader(const char* shaderFile, GLenum shaderType);
