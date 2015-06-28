@@ -18,17 +18,11 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="opengl_util.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="opengl_cs.cpp">
+    <ClCompile Include="util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="opengl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="util.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -37,10 +31,10 @@
     <None Include="compute.shader">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="fragment.shader">
+    <None Include="vertex.shader">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="vertex.shader">
+    <None Include="fragment.shader">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
