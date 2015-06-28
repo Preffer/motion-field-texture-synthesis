@@ -72,13 +72,12 @@ int main(int argc, char* argv[]) {
 	glBindImageTexture(3, control, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32UI);
 
 	// display
-	const unsigned char* displayData = new unsigned char[WIDTH * HEIGHT * 3];
 	GLuint display;
 	glGenTextures(1, &display);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, display);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, displayData);
-	glBindImageTexture(4, display, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glBindImageTexture(4, display, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8UI);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// compute shader
@@ -98,6 +97,8 @@ int main(int argc, char* argv[]) {
 	const char* drawSrc[] = { vertexSrc, fragmentSrc };
 	GLenum drawType[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
 	GLuint draw = buildProgram(drawSrc, drawType, 2);
+	glUseProgram(draw);
+	glUniform2i(glGetUniformLocation(draw, "size"), WIDTH, HEIGHT);
 
 	// draw data
 	GLuint vertexArray;
@@ -127,6 +128,7 @@ int main(int argc, char* argv[]) {
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(vertexData));
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		glClearTexImage(display, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
 	
 	return EXIT_SUCCESS;
