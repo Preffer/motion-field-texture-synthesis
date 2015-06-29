@@ -12,7 +12,7 @@ using namespace glm;
 
 const static int WIDTH = 512;
 const static int HEIGHT = 512;
-const static int COUNT = 10240;
+const static int COUNT = 1600;
 
 int main(int argc, char* argv[]) {
 	if (!glfwInit()) {
@@ -48,37 +48,42 @@ int main(int argc, char* argv[]) {
 	checkError("motion");
 
 	// position
-	float* positionData = new float[COUNT * 4];
-	for (int i = 0; i < COUNT; i += 4) {
-		positionData[i] = float(rand()) / RAND_MAX;
-		positionData[i + 1] = float(rand()) / RAND_MAX;
-		positionData[i + 2] = float(rand()) / RAND_MAX;
-		positionData[i + 3] = float(rand()) / RAND_MAX;
+	float* positionData = new float[COUNT * COUNT * 4];
+	for (int i = 0; i < COUNT * COUNT; i += 4) {
+		positionData[i    ] = 0.5;
+		positionData[i + 1] = 0.5;
+		positionData[i + 3] = 1;
 	}
+
 	GLuint position;
 	glGenTextures(1, &position);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_1D, position);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, COUNT, 0, GL_RGBA, GL_FLOAT, positionData);
+	glBindTexture(GL_TEXTURE_2D, position);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, COUNT, COUNT, 0, GL_RGBA, GL_FLOAT, positionData);
 	glBindImageTexture(1, position, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	checkError("position");
 
 	// velocity
-	float* velocityData = new float[COUNT * 4];
+	float* velocityData = new float[COUNT * COUNT * 4];
+	for (int i = 0; i < COUNT * COUNT; i += 4) {
+		velocityData[i    ] = float(rand()) / RAND_MAX;
+		velocityData[i + 1] = float(rand()) / RAND_MAX;
+	}
+
 	GLuint velocity;
 	glGenTextures(1, &velocity);
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_1D, velocity);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, COUNT, 0, GL_RGBA, GL_FLOAT, velocityData);
+	glBindTexture(GL_TEXTURE_2D, velocity);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, COUNT, COUNT, 0, GL_RGBA, GL_FLOAT, velocityData);
 	glBindImageTexture(2, velocity, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 	// control
-	int* controlData = new int[COUNT * 4];
+	int* controlData = new int[COUNT * COUNT * 4];
 	GLuint control;
 	glGenTextures(1, &control);
 	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_1D, control);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32I, COUNT, 0, GL_RGBA, GL_INT, controlData);
+	glBindTexture(GL_TEXTURE_2D, control);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, COUNT, COUNT, 0, GL_RGBA, GL_INT, controlData);
 	glBindImageTexture(3, control, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32I);
 
 	// display
@@ -96,6 +101,8 @@ int main(int argc, char* argv[]) {
 	;
 	GLenum computeType[] = { GL_COMPUTE_SHADER };
 	GLuint compute = buildProgram(&computeSrc, computeType, 1);
+	glUseProgram(compute);
+	glUniform2i(glGetUniformLocation(compute, "size"), WIDTH, HEIGHT);
 
 	// draw shader
 	const static char* vertexSrc =
@@ -136,7 +143,7 @@ int main(int argc, char* argv[]) {
 	char fpsTitle[32];
 	do {
 		glUseProgram(compute);
-		glDispatchCompute(COUNT / 256, 1, 1);
+		glDispatchCompute(COUNT / 16, COUNT / 16, 1);
 		glUseProgram(draw);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(vertexData));
 		glfwSwapBuffers(window);
