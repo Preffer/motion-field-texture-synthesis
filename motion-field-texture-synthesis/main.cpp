@@ -12,7 +12,7 @@ using namespace glm;
 
 const static int WIDTH = 512;
 const static int HEIGHT = 512;
-const static int COUNT = 1600;
+const static int COUNT = 1280;
 
 int main(int argc, char* argv[]) {
 	if (!glfwInit()) {
@@ -49,11 +49,11 @@ int main(int argc, char* argv[]) {
 
 	// position
 	float* positionData = new float[COUNT * COUNT * 4];
-	for (int i = 0; i < COUNT * COUNT; i += 4) {
+	/*for (int i = 0; i < COUNT * COUNT; i += 4) {
 		positionData[i    ] = 0.5;
 		positionData[i + 1] = 0.5;
 		positionData[i + 3] = 1;
-	}
+	}*/
 
 	GLuint position;
 	glGenTextures(1, &position);
@@ -65,10 +65,10 @@ int main(int argc, char* argv[]) {
 
 	// velocity
 	float* velocityData = new float[COUNT * COUNT * 4];
-	for (int i = 0; i < COUNT * COUNT; i += 4) {
-		velocityData[i    ] = float(rand()) / RAND_MAX;
-		velocityData[i + 1] = float(rand()) / RAND_MAX;
-	}
+	/*for (int i = 0; i < COUNT * COUNT; i += 4) {
+		velocityData[i    ] = 0.5;
+		velocityData[i + 1] = 0;
+	}*/
 
 	GLuint velocity;
 	glGenTextures(1, &velocity);
