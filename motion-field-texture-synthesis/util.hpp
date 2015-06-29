@@ -9,6 +9,6 @@ const unsigned char* readBMP(const char* path);
 GLuint buildShader(const char* shaderCode, GLenum shaderType);
 GLuint buildProgram(const char** shaderCodeArray, GLenum* shaderTypeArray, GLuint length);
 
-void checkErrors(const char* desc);
+void checkError(const char* desc);
 
 #endif

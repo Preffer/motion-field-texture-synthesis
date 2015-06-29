@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <boost/format.hpp>
 #include <GL/glew.h>
@@ -11,7 +12,7 @@ using namespace glm;
 
 const static int WIDTH = 512;
 const static int HEIGHT = 512;
-const static int COUNT = 10000;
+const static int COUNT = 10240;
 
 int main(int argc, char* argv[]) {
 	if (!glfwInit()) {
@@ -34,6 +35,7 @@ int main(int argc, char* argv[]) {
 	if (glewInit() != GLEW_OK) {
 		throw runtime_error("Failed to initialize GLEW");
 	}
+	checkError("init");
 
 	// motion
 	const unsigned char* motionData = readBMP("motion.bmp");
@@ -43,33 +45,41 @@ int main(int argc, char* argv[]) {
 	glBindTexture(GL_TEXTURE_2D, motion);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, motionData);
 	glBindImageTexture(0, motion, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8UI);
+	checkError("motion");
 
 	// position
-	const float* positionData = new float[COUNT * 4];
+	float* positionData = new float[COUNT * 4];
+	for (int i = 0; i < COUNT; i += 4) {
+		positionData[i] = float(rand()) / RAND_MAX;
+		positionData[i + 1] = float(rand()) / RAND_MAX;
+		positionData[i + 2] = float(rand()) / RAND_MAX;
+		positionData[i + 3] = float(rand()) / RAND_MAX;
+	}
 	GLuint position;
 	glGenTextures(1, &position);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_1D, position);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, COUNT, 0, GL_RGBA, GL_FLOAT, positionData);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, COUNT, 0, GL_RGBA, GL_FLOAT, positionData);
 	glBindImageTexture(1, position, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	checkError("position");
 
 	// velocity
-	const float* velocityData = new float[COUNT * 4];
+	float* velocityData = new float[COUNT * 4];
 	GLuint velocity;
 	glGenTextures(1, &velocity);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_1D, velocity);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, COUNT, 0, GL_RGBA, GL_FLOAT, velocityData);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, COUNT, 0, GL_RGBA, GL_FLOAT, velocityData);
 	glBindImageTexture(2, velocity, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 	// control
-	const int* controlData = new int[COUNT * 4];
+	int* controlData = new int[COUNT * 4];
 	GLuint control;
 	glGenTextures(1, &control);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_1D, control);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, COUNT, 0, GL_RGBA, GL_INT, controlData);
-	glBindImageTexture(3, control, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32UI);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32I, COUNT, 0, GL_RGBA, GL_INT, controlData);
+	glBindImageTexture(3, control, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32I);
 
 	// display
 	GLuint display;
@@ -121,14 +131,22 @@ int main(int argc, char* argv[]) {
 	glEnableVertexAttribArray(0);
 
 	// main loop
+	double lastTime = glfwGetTime();
+	double nowTime;
+	char fpsTitle[32];
 	do {
 		glUseProgram(compute);
-		glDispatchCompute(512 / 16, 512 / 16, 1);
+		glDispatchCompute(COUNT / 256, 1, 1);
 		glUseProgram(draw);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(vertexData));
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		glClearTexImage(display, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+		nowTime = glfwGetTime();
+		sprintf(fpsTitle, "Render - FPS: %.2f", 1 / (nowTime - lastTime));
+		glfwSetWindowTitle(window, fpsTitle);
+		lastTime = nowTime;
 	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
 	
 	return EXIT_SUCCESS;

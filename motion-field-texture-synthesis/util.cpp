@@ -111,7 +111,7 @@ GLuint buildProgram(const char** shaderCodeArray, GLenum* shaderTypeArray, GLuin
 	return program;
 }
 
-void checkErrors(const char* desc) {
+void checkError(const char* desc) {
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		cerr << format("OpenGL error in %1%: %2% (%3%)") % desc % gluErrorString(error) % error << endl;
