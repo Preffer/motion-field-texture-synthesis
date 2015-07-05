@@ -9,74 +9,63 @@ using namespace std;
 using namespace boost;
 using namespace cv;
 
-const int WIDTH = 840;
-const int HEIGHT = 480;
+const int COLS = 840;
+const int ROWS = 480;
 
-const float MIN_SPEED = 0.2;
+float COL_BORN_BASE = COLS - 1;
+float ROW_BORN_BASE = ROWS / 2;
 
-const float X_POS_BASE = HEIGHT / 2;
-const float Y_POS_BASE = WIDTH - 1;
+float COL_BORN_VARY = 0;
+float ROW_BORN_VARY = ROWS;
 
-const float X_POS_VARY = HEIGHT;
-const float Y_POS_VARY = 0;
+float COL_SPEED = -2;
+float ROW_SPEED = 0;
 
-const float X_MOTION_BASE = 128;
-const float Y_MOTION_BASE = 128;
+float COL_MOTION_BASE = 128;
+float ROW_MOTION_BASE = 128;
 
-const float X_MOTION_WEIGHT = 0.02;
-const float Y_MOTION_WEIGHT = 0.02;
+float COL_MOTION_WEIGHT = 0.02;
+float ROW_MOTION_WEIGHT = 0.02;
 
-const int X_FORCE = 240;
-const int Y_FORCE = 420;
-const int FORCE_RANGE = 108;
+int COL_FORCE = 420;
+int ROW_FORCE = 240;
+int FORCE_RANGE = 108;
 
-const int BORN_SPEED = 10;
+int BORN_SPEED = 10;
+float MIN_SPEED = 0.2f;
 
-const int TTL_BASE = 800;
-const int TTL_VARY = 100;
-const int TTL_MAX = TTL_BASE + TTL_VARY;
+int COL_SWIRL_MIN = 100;
+int COL_SWIRL_MAX = 800;
+int ROW_SWIRL_MIN = 100;
+int ROW_SWIRL_MAX = 400;
+int ROW_SWIRL_AVG = (ROW_SWIRL_MIN + ROW_SWIRL_MAX) / 2;
+float SWIRL_RAD = 0.05;
 
 class Particle {
 public:
 	Particle();
-	float xPos;
-	float yPos;
-	float counter;
-	float xSpeed;
-	float ySpeed;
-	//int ttl;
+	float row;
+	float col;
+	float rowSpeed;
+	float colSpeed;
 };
 
 Particle::Particle() {
-	xPos = X_POS_BASE + (float(rand()) / RAND_MAX - 0.5) * X_POS_VARY;
-	yPos = Y_POS_BASE + (float(rand()) / RAND_MAX - 0.5) * Y_POS_VARY;
-	counter = 0;
-	xSpeed = 0;
-	ySpeed = 0;
-	//ttl  = TTL_BASE   + rand() * TTL_VARY / RAND_MAX;
-
+	col = COL_BORN_BASE + (float(rand()) / RAND_MAX - 0.5) * COL_BORN_VARY;
+	row = ROW_BORN_BASE + (float(rand()) / RAND_MAX - 0.5) * ROW_BORN_VARY;
+	colSpeed = COL_SPEED;
+	rowSpeed = ROW_SPEED;
 }
 
 int main(int argc, char* argv[]) {
 	Mat motion = imread("plast.bmp", CV_LOAD_IMAGE_COLOR);
-	resize(motion, motion, Size(WIDTH, HEIGHT));
-	//normalize(motion, motion, 0, 255, NORM_MINMAX);
-
-	//imshow("Motion", motion);
-
-	VideoWriter videoOut(
-		"fluid-last1.mpg",
-		CV_FOURCC('M', 'J', 'P', 'G'),
-		30,
-		Size(WIDTH, HEIGHT)
-		);
-	if (!videoOut.isOpened()){
-		cerr << "Failed to open " << endl;
-		return EXIT_FAILURE;
-	}
+	resize(motion, motion, Size(COLS, ROWS));
 
 	list<Particle> particles;
 	Mat scene;
+	imshow("Scene", motion);
+	//createTrackbar("ROW_SWIRL", "Scene", &ROW_SWIRL, ROWS);
+	//createTrackbar("COL_SWIRL", "Scene", &COL_SWIRL, COLS);
 
 	while (true) {
 		for (int i = 0; i < BORN_SPEED; i++) {
@@ -84,69 +73,45 @@ int main(int argc, char* argv[]) {
 		}
 
 		// apply motion
-		scene = Mat(Size(WIDTH, HEIGHT), CV_8UC3, Scalar(255, 255, 255));
+		scene = Mat(Size(COLS, ROWS), CV_8UC3, CV_RGB(255, 255, 255));
 
 		for (auto p = particles.begin(); p != particles.end(); p++) {
-			int xPosI = int(p->xPos);
-			int yPosI = int(p->yPos);
-			if (xPosI <= 0 || xPosI >= HEIGHT || yPosI <= 0 || yPosI >= WIDTH) {
-				auto ptr = p;
-				if ((++ptr) == particles.end()) {
-					particles.erase(p);
-					break;
+			Vec3b bgrPixel = motion.at<Vec3b>(p->row, p->col);
+
+			if (p->row > ROW_SWIRL_MIN && p->row < ROW_SWIRL_MAX && p->col > COL_SWIRL_MIN && p->col < COL_SWIRL_MAX) {
+				float length = sqrtf(powf(p->colSpeed, 2) + powf(p->rowSpeed, 2));
+				if (length == sqrtf(powf(COL_SPEED, 2) + powf(ROW_SPEED, 2))) {
+					length *= 3;
 				}
-				particles.erase(p--);
-				continue;
-			}
-			Vec3b bgrPixel = motion.at<Vec3b>(xPosI, yPosI);
-			//cout << bgrPixel << endl;
-
-			float xSpeed =  0;
-			float ySpeed = -1;
-			float xVector = p->xPos - X_FORCE;
-			float yVector = p->yPos - Y_FORCE;
-			float dis = powf(xVector, 4) + powf(yVector, 4);
-			float flag = xVector > 0 ? -1 : 1;
-			
-			if (yVector > 0) {
-				xSpeed += (1000000 / dis - 0.001 / powf(xVector, 2)) * -yVector * flag;
+				float angle;
+				if (p->row < ROW_SWIRL_AVG) {
+					angle = atan2f(p->rowSpeed, p->colSpeed) - SWIRL_RAD;
+				} else {
+					angle = atan2f(p->rowSpeed, p->colSpeed) - SWIRL_RAD;
+				}
+				//cout << boost::format("(%1%, %2%): %3%, after transfer %4%, cos %5%, sin %6%") % p->rowSpeed % p->colSpeed % angle % (angle - SWIRL_RAD) % cos(angle - SWIRL_RAD) % sin(angle - SWIRL_RAD)<< endl;
+				p->colSpeed = length * cosf(angle);
+				p->rowSpeed = length * sinf(angle);
+				p->col += p->colSpeed + COL_SPEED;
+				p->row += p->rowSpeed + ROW_SPEED;
 			} else {
-				xSpeed += (1000000 / dis) * -yVector * flag;
+				p->colSpeed = (COL_SPEED + p->colSpeed * 4) / 5;
+				p->rowSpeed = (ROW_SPEED + p->rowSpeed * 4) / 5;
+				p->col += p->colSpeed;
+				p->row += p->rowSpeed;
 			}
-
-			//p->xSpeed = p->xSpeed / 1.1 + (float(bgrPixel[2]) - X_MOTION_BASE) * X_MOTION_WEIGHT;
-			//p->ySpeed = p->ySpeed / 1.1 + (float(bgrPixel[1]) - Y_MOTION_BASE) * Y_MOTION_WEIGHT;
-			//p->counter = 0;
-			xSpeed += p->xSpeed / 1.2 + (float(bgrPixel[2]) - X_MOTION_BASE) * X_MOTION_WEIGHT;
-			ySpeed += p->ySpeed / 1.2 + (float(bgrPixel[1]) - Y_MOTION_BASE) * Y_MOTION_WEIGHT;
-			
-
-			float length = sqrtf(powf(xSpeed, 2) + powf(ySpeed, 2));
-			if (abs(p->xPos - X_FORCE) < MIN_SPEED) {
-				continue;
-			} else {
-				xSpeed /= length;
-				ySpeed /= length;
-			}
-			if (length < 0.5) {
-				xSpeed = 0;
-				ySpeed = -1;
-			}
-			p->xPos += xSpeed;
-			p->yPos += ySpeed;
 
 			// erase if die
-			if (p->xPos < 0 || p->xPos >= HEIGHT || p->yPos < 0 || p->yPos >= WIDTH) {
+			if (p->col < 0 || p->col >= COLS || p->row < 0 || p->row >= ROWS) {
 				particles.erase(p--);
 			} else {
-				//float alpha = float(p->ttl) / TTL_MAX;
-				arrowedLine(scene, Point(p->yPos, p->xPos), Point(p->yPos + 10 * ySpeed, p->xPos + 8 * xSpeed), Scalar(0, 0, 0), 1, 8, 0, 0.1);
+				arrowedLine(scene, Point(p->col, p->row), Point(p->col + 10 * p->colSpeed, p->row + 10 * p->rowSpeed), CV_RGB(0, 0, 0), 1, 8, 0, 0.2);
 			}
 
 		}
-		circle(scene, Point(Y_FORCE, X_FORCE), FORCE_RANGE, Scalar(0, 0, 175), 2);
+
+		circle(scene, Point(COL_FORCE, ROW_FORCE), FORCE_RANGE, CV_RGB(175, 0, 0), 2);
 		imshow("Scene", scene);
-		//videoOut << scene;
 		waitKey(1);
 	}
 
