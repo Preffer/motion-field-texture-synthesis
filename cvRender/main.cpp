@@ -18,7 +18,7 @@ float BORN_BASE_ROW = ROWS / 2;
 float BORN_VARY_COL = 0;
 float BORN_VARY_ROW = ROWS;
 
-float SPEED_COL = -4;
+float SPEED_COL = -2;
 float SPEED_ROW = 0;
 
 float MOTION_BASE_COL = 128;
@@ -49,10 +49,10 @@ int SWIRL_BASE_ROW = 400;
 int SWIRL_VARY_COL = 60;
 int SWIRL_VARY_ROW = 40;
 
-float SWIRL_LINE1_K = 1.1;
+float SWIRL_LINE1_K = 1;
 float SWIRL_LINE1_B = -100;
 
-float SWIRL_LINE2_K = -1.1;
+float SWIRL_LINE2_K = -1;
 float SWIRL_LINE2_B = 580;
 
 float SWIRL_DIS = 100.0;
@@ -124,6 +124,21 @@ int main(int argc, char* argv[]) {
 
 		for (auto p = particles.begin(); p != particles.end(); p++) {
 			Vec3b bgrPixel = motion.at<Vec3b>(p->row, p->col);
+			float colSpeed = -1;
+			float rowSpeed = 0;
+			float colVector = p->col - FORCE_COL;
+			float rowVector = p->row - FORCE_ROW;
+			float dis = powf(colVector, 4) + powf(rowVector	, 4);
+			float flag = rowVector > 0 ? -1 : 1;
+
+			if (rowVector > 0) {
+				rowSpeed += (3e6 / dis - 1e-8 / powf(rowVector, 2)) * -colVector * flag;
+			} else {
+				rowSpeed += (3e6 / dis) * -colVector * flag;
+			}
+			
+			p->col += colSpeed;
+			p->row += rowSpeed;
 
 			if ((p->col * SWIRL_LINE1_K + SWIRL_LINE1_B < p->row) && (p->col * SWIRL_LINE2_K + SWIRL_LINE2_B > p->row)) {
 				float swirlCol = swirls.front().col;
@@ -147,12 +162,11 @@ int main(int argc, char* argv[]) {
 				float vectorAngle = atan2f(rowVector, colVector);
 
 				//cout << boost::format("%1%: %2%") % vectorDis % vectorAngle << endl;
-				float swirlAngle = 1e8 / powf(vectorDis, 4) * SWIRL_RAD;
+				float swirlAngle = min(1e8 / powf(vectorDis, 4) * SWIRL_RAD, 0.05);
 				if (swirlAngle > 0.05) {
 					swirlAngle = 0.05;
 				}
 				float newAngle = vectorAngle + swirlAngle;
-				//cout << newAngle << endl;
 				p->col = swirlCol + vectorDis * cosf(newAngle) + SPEED_COL;
 				p->row = swirlRow + vectorDis * sinf(newAngle) + SPEED_ROW;
 
@@ -168,34 +182,25 @@ int main(int argc, char* argv[]) {
 					p->rowSpeed = SPEED_ROW;
 				}
 
+				p->colSpeed += colSpeed;
+				p->rowSpeed += rowSpeed;
 				float speedLength = sqrtf(powf(p->colSpeed, 2) + powf(p->rowSpeed, 2));
 				p->colSpeed /= speedLength;
 				p->rowSpeed /= speedLength;
-				//float speedDis = sqrtf(powf(p->colSpeed, 2) + powf(p->rowSpeed, 2));
-				//float speedAngle = atan2f(p->rowSpeed, p->colSpeed) - SWIRL_RAD;
-				//cout << speedAngle << endl;
-
-				//float swirlWeight = SWIRL_DIS / vectorDis;
-				//cout << swirlWeight << endl;
-
-				//float newAngle = vectorAngle * swirlWeight + speedAngle * (1 - swirlWeight);
-				//float newAngle = vectorAngle;
-				//cout << boost::format("(%1%, %2%): %3%, after transfer %4%, cos %5%, sin %6%") % p->rowSpeed % p->colSpeed % angle % (angle - SWIRL_RAD) % cos(angle - SWIRL_RAD) % sin(angle - SWIRL_RAD)<< endl;
-				//p->colSpeed = speedDis * cosf(newAngle);
-				//p->rowSpeed = speedDis * sinf(newAngle);
-
 			} else {
 				p->col += SPEED_COL;
 				p->row += SPEED_ROW;
 				p->colSpeed = SPEED_COL / 3;
 				p->rowSpeed = SPEED_ROW / 3;
+				p->colSpeed += colSpeed;
+				p->rowSpeed += rowSpeed;
 			}
 
 			// erase if die
 			if (p->col < 0 || p->col >= COLS || p->row < 0 || p->row >= ROWS) {
 				particles.erase(p--);
 			} else {
-				arrowedLine(scene, Point(p->col, p->row), Point(p->col + 10 * p->colSpeed, p->row + 10 * p->rowSpeed), CV_RGB(0, 0, 0), 1, 8, 0, 0.2);
+				arrowedLine(scene, Point(p->col, p->row), Point(p->col + 8 * p->colSpeed, p->row + 8 * p->rowSpeed), CV_RGB(0, 0, 0), 1, 8, 0, 0.2);
 			}
 
 		}
