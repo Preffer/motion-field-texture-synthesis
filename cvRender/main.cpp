@@ -31,7 +31,7 @@ int FORCE_COL = 420;
 int FORCE_ROW = 240;
 int FORCE_RANGE = 108;
 
-int BORN_SPEED = 20;
+int BORN_SPEED = 15;
 float MIN_SPEED = 0.2f;
 
 int SWIRL_TOP_COL = 0;
@@ -88,6 +88,17 @@ int main(int argc, char* argv[]) {
 	Mat motion = imread("plast.bmp", CV_LOAD_IMAGE_COLOR);
 	resize(motion, motion, Size(COLS, ROWS));
 
+	VideoWriter videoOut(
+		"fluid3.avi",
+		CV_FOURCC('D', 'I', 'V', 'X'),
+		30,
+		Size(840, 480)
+		);
+	if (!videoOut.isOpened()){
+		cerr << "Failed to open " << endl;
+		return EXIT_FAILURE;
+	}
+
 	list<Particle> particles;
 	list<Swirl> swirls;
 
@@ -97,10 +108,13 @@ int main(int argc, char* argv[]) {
 	//createTrackbar("COL_SWIRL", "Scene", &COL_SWIRL, COLS);
 
 	int frame = 0;
-	while (true) {
-		for (int i = 0; i < BORN_SPEED; i++) {
-			particles.push_back(Particle());
+	for (int i = 0; i < 1500; i++) {
+		if (i < 1100) {
+			for (int j = 0; j < BORN_SPEED; j++) {
+				particles.push_back(Particle());
+			}
 		}
+
 		if (frame++ == 0) {
 			for (int i = -4; i < 8; i++) {
 				swirls.push_back(Swirl(SWIRL_BASE_COL + i * SWIRL_VARY_COL, SWIRL_BASE_ROW + i * SWIRL_VARY_ROW));
@@ -211,6 +225,7 @@ int main(int argc, char* argv[]) {
 		
 		circle(scene, Point(FORCE_COL, FORCE_ROW), FORCE_RANGE, CV_RGB(175, 0, 0), 2);
 		imshow("Scene", scene);
+		videoOut << scene;
 		waitKey(1);
 	}
 
